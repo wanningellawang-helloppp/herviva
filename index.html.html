@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herviva 赫维薇 · 女性脑代谢智能分析平台（演示原型）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --deep-purple:#5b2a5e;
+    --rose-purple:#8b4a72;
+    --rose-pink:#c97fa0;
+    --cream:#fbf3ee;
+    --cream-2:#f6e9e3;
+    --ink:#3a2438;
+    --ink-soft:#7a6272;
+    --good:#5e8c61;
+    --mid:#c9932f;
+    --warn:#c9622f;
+    --high:#b23a48;
+    --card-radius:18px;
+    --shadow:0 8px 24px rgba(91,42,94,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+    background:linear-gradient(180deg,#f8ecf1 0%, var(--cream) 40%, var(--cream-2) 100%);
+    color:var(--ink);
+    min-height:100vh;
+  }
+  .topbar{
+    background:linear-gradient(120deg,var(--deep-purple),var(--rose-purple) 60%, var(--rose-pink));
+    color:#fff;
+    padding:22px 5vw 26px;
+    box-shadow:var(--shadow);
+  }
+  .topbar h1{
+    margin:0;
+    font-size:26px;
+    letter-spacing:1px;
+    font-weight:700;
+  }
+  .topbar .tagline{
+    margin-top:4px;
+    font-size:13px;
+    opacity:0.9;
+    letter-spacing:0.5px;
+  }
+  .disclaimer{
+    max-width:1100px;
+    margin:14px auto 0;
+    background:rgba(255,255,255,0.16);
+    border:1px solid rgba(255,255,255,0.35);
+    border-radius:10px;
+    padding:8px 14px;
+    font-size:12.5px;
+    line-height:1.6;
+  }
+  .wrap{
+    max-width:1100px;
+    margin:0 auto;
+    padding:28px 5vw 60px;
+  }
+  .section-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:34px 0 16px;
+    color:var(--deep-purple);
+  }
+  .section-title .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:linear-gradient(120deg,var(--rose-pink),var(--rose-purple));
+  }
+  .section-title h2{
+    font-size:18px;
+    margin:0;
+    letter-spacing:0.5px;
+  }
+  .card{
+    background:#fff;
+    border-radius:var(--card-radius);
+    box-shadow:var(--shadow);
+    padding:22px 24px;
+    border:1px solid #f1dfe6;
+  }
+  /* ---------- 表单 ---------- */
+  .form-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px 20px;
+  }
+  .field label{
+    display:block;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .field input, .field select{
+    width:100%;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid #e6cfda;
+    background:#fffaf9;
+    font-size:14px;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s;
+  }
+  .field input:focus, .field select:focus{
+    border-color:var(--rose-purple);
+  }
+  .field .hint{
+    font-size:11px;
+    color:#b98da6;
+    margin-top:4px;
+  }
+  .btn-generate{
+    margin-top:22px;
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(120deg,var(--deep-purple),var(--rose-purple));
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    letter-spacing:2px;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(139,74,114,0.35);
+  }
+  .btn-generate:hover{opacity:0.92;}
+  .btn-mock{
+    margin-top:10px;
+    width:100%;
+    padding:9px;
+    border:1px dashed var(--rose-purple);
+    border-radius:10px;
+    background:transparent;
+    color:var(--rose-purple);
+    font-size:13px;
+    cursor:pointer;
+  }
+
+  /* ---------- 输出：脑代谢综合评价 ---------- */
+  #reportArea{display:none;}
+  .report-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .report-header .date{
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .top-grid{
+    display:grid;
+    grid-template-columns:220px 1fr 1fr;
+    gap:18px;
+    margin-top:14px;
+  }
+  @media (max-width:760px){ .top-grid{grid-template-columns:1fr;} }
+
+  .score-circle{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 30% 20%, #fff 0%, var(--cream-2) 100%);
+    border-radius:16px;
+    padding:18px;
+    text-align:center;
+  }
+  .score-num{
+    font-size:48px;
+    font-weight:800;
+    color:var(--deep-purple);
+    line-height:1;
+  }
+  .score-sub{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .score-level{
+    margin-top:10px;
+    padding:4px 14px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:700;
+    color:#fff;
+  }
+  .score-trend{
+    margin-top:8px;
+    font-size:11.5px;
+    color:var(--ink-soft);
+  }
+
+  .status-overview{
+    background:var(--cream-2);
+    border-radius:16px;
+    padding:16px 18px;
+  }
+  .status-overview h3{margin:0 0 8px;font-size:14px;color:var(--deep-purple);}
+  .status-overview p{margin:0;font-size:13.5px;line-height:1.9;color:var(--ink);}
+
+  .risk-top3{
+    background:#fff5f7;
+    border-radius:16px;
+    padding:16px 18px;
+    border:1px solid #f3d9e4;
+  }
+  .risk-top3 h3{margin:0 0 10px;font-size:14px;color:var(--deep-purple);}
+  .risk-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+    font-size:13px;
+  }
+  .risk-rank{
+    width:22px;height:22px;border-radius:50%;
+    background:linear-gradient(120deg,var(--rose-purple),var(--rose-pink));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;flex-shrink:0;
+  }
+  .risk-bar-wrap{flex:1;background:#f1dbe4;border-radius:6px;height:8px;overflow:hidden;}
+  .risk-bar{height:100%;background:linear-gradient(90deg,var(--rose-pink),var(--warn));}
+  .risk-pct{font-size:12px;color:var(--ink-soft);width:38px;text-align:right;}
+
+  /* ---------- 四大行动建议 ---------- */
+  .action-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:16px;
+    margin-top:16px;
+  }
+  .action-card{
+    border-radius:16px;
+    padding:16px 18px;
+    background:#fff;
+    border:1px solid #f1dfe6;
+    position:relative;
+  }
+  .action-card .icon{font-size:20px;}
+  .action-card h4{
+    margin:8px 0 8px;
+    font-size:14.5px;
+    color:var(--deep-purple);
+  }
+  .action-card ul{
+    margin:0 0 10px;
+    padding-left:18px;
+    font-size:13px;
+    line-height:1.8;
+    color:var(--ink);
+  }
+  .action-reason{
+    font-size:12px;
+    color:#a4708a;
+    background:#fbf0f4;
+    border-radius:10px;
+    padding:8px 10px;
+    line-height:1.6;
+  }
+  .action-reason b{color:var(--rose-purple);}
+
+  /* ---------- 今日小目标 ---------- */
+  .goals{
+    margin-top:16px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .goal-chip{
+    background:var(--cream-2);
+    border-radius:20px;
+    padding:8px 14px;
+    font-size:13px;
+    color:var(--ink);
+    border:1px solid #eccfda;
+  }
+
+  /* ---------- 图表 ---------- */
+  .chart-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:18px;
+  }
+  .chart-card h4{
+    margin:0 0 8px;
+    font-size:13.5px;
+    color:var(--deep-purple);
+  }
+  canvas{max-width:100%;}
+
+  footer{
+    text-align:center;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    padding:20px 5vw 40px;
+  }
+
+  .badge-good{background:var(--good);}
+  .badge-mid{background:var(--mid);}
+  .badge-warn{background:var(--warn);}
+  .badge-high{background:var(--high);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>herviva 赫维薇</h1>
+  <div class="tagline">一款专为女性打造的脑代谢智能分析平台 · 中国国际大学生创新大赛演示原型</div>
+  <div class="disclaimer">
+    ⚠️ 免责声明：本产品为大学生创新创业大赛<b>演示 Demo</b>，所有数据均为<b>模拟数据（Mock Data）</b>，未接入真实可穿戴设备或医疗数据库。
+    产品仅为<b>健康生活方式辅助管理工具</b>，<b>不构成医疗诊断、不进行疾病治疗</b>，所有建议仅供参考，具体调整请结合个人实际情况及专业医生意见。
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ============ 1. 数据录入模块 ============ -->
+  <div class="section-title"><span class="dot"></span><h2>① 数据录入模块（对应计划书 3.2 多源数据层）</h2></div>
+  <div class="card">
+    <div class="form-grid">
+      <div class="field">
+        <label>年龄</label>
+        <input type="number" id="in_age" value="24" min="15" max="55">
+      </div>
+      <div class="field">
+        <label>BMI</label>
+        <input type="number" id="in_bmi" value="21.3" step="0.1" min="14" max="40">
+      </div>
+      <div class="field">
+        <label>当前生理周期阶段</label>
+        <select id="in_phase">
+          <option value="卵泡期">卵泡期</option>
+          <option value="排卵期">排卵期</option>
+          <option value="黄体期" selected>黄体期</option>
+          <option value="经期">经期</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>今日情绪评分（0-10，越高越好）</label>
+        <input type="number" id="in_mood" value="5" min="0" max="10">
+      </div>
+      <div class="field">
+        <label>今日压力评分（0-10，越高压力越大）</label>
+        <input type="number" id="in_pressure" value="7" min="0" max="10">
+      </div>
+      <div class="field">
+        <label>睡眠时长（小时）</label>
+        <input type="number" id="in_sleep_h" value="6.5" step="0.1" min="0" max="12">
+      </div>
+      <div class="field">
+        <label>睡眠质量评分（0-10）</label>
+        <input type="number" id="in_sleep_q" value="6" min="0" max="10">
+      </div>
+      <div class="field">
+        <label>HRV 心率变异性（ms）</label>
+        <input type="number" id="in_hrv" value="48" min="10" max="120">
+        <div class="hint">正常参考区间约 30-80ms，仅作 Demo 模拟</div>
+      </div>
+      <div class="field">
+        <label>今日运动时长（分钟）</label>
+        <input type="number" id="in_exercise" value="30" min="0" max="180">
+      </div>
+    </div>
+    <button class="btn-generate" onclick="generateReport()">生成今日脑代谢综合评价 →</button>
+    <button class="btn-mock" onclick="fillMockHighRisk()">一键填入「高压力+黄体期」模拟案例（用于演示暴食风险=高 的判定逻辑）</button>
+  </div>
+
+  <!-- ============ 2. 输出报告 ============ -->
+  <div id="reportArea">
+
+    <div class="section-title"><span class="dot"></span><h2>② 今日脑代谢综合评价（对应计划书 3.4 脑代谢决策层）</h2></div>
+    <div class="card">
+      <div class="report-header">
+        <div style="font-size:15px;font-weight:700;color:var(--deep-purple);">Hi，今天也要好好照顾自己哦 🌸</div>
+        <div class="date" id="reportDate"></div>
+      </div>
+
+      <div class="top-grid">
+        <div class="score-circle">
+          <div class="score-num" id="scoreNum">--</div>
+          <div class="score-sub">脑代谢平衡分 / 100</div>
+          <div class="score-level" id="scoreLevel">--</div>
+          <div class="score-trend" id="scoreTrend"></div>
+        </div>
+
+        <div class="status-overview">
+          <h3>今日状态总览</h3>
+          <p id="statusText">--</p>
+        </div>
+
+        <div class="risk-top3">
+          <h3>今日风险点 TOP 3</h3>
+          <div id="riskList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title"><span class="dot"></span><h2>③ 今日个性化行动建议（对应计划书 3.5 个性化干预层）</h2></div>
+    <div class="action-grid" id="actionGrid"></div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3 style="margin:0 0 4px;font-size:14px;color:var(--deep-purple);">今日小目标</h3>
+      <div class="goals" id="goalsArea"></div>
+    </div>
+
+    <div class="section-title"><span class="dot"></span><h2>④ 简易可视化仪表盘（近7日模拟趋势）</h2></div>
+    <div class="chart-grid">
+      <div class="card chart-card">
+        <h4>压力指数 7 日曲线</h4>
+        <canvas id="chartStress"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h4>HRV 趋势</h4>
+        <canvas id="chartHRV"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h4>情绪评分 7 日曲线</h4>
+        <canvas id="chartMood"></canvas>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  Herviva 赫维薇 · HerOS 团队 · 河南农业大学生命科学学院 ｜ 本页面所有计算逻辑均为演示用简化算法，不代表真实医学/生理模型 ｜ 数据仅保存在本地浏览器内存中，刷新即清空
+</footer>
+
+<script>
+/* =========================================================================================
+   Herviva 核心算法逻辑
+   严格依据《Herviva赫维薇——专为女性打造的脑代谢智能分析平台》项目计划书 第三章「产品与技术」实现
+   所有计算均为 Demo 演示用的简化规则/加权模型，不构成真实医学算法
+   ========================================================================================= */
+
+let charts = {stress:null, hrv:null, mood:null};
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.2 多源数据层】生成模拟 7 日历史数据，用于建立"个人基线"
+// 文档原文："系统并非简单采用统一阈值，而是结合用户连续数据建立个人基线"
+// 本函数以用户今日填写的数值为中心，做小幅随机扰动，模拟过去 7 天的真实波动情况
+// ---------------------------------------------------------------------------------------
+function generateMockHistory(today){
+  const history = [];
+  for(let i=6;i>=0;i--){
+    // 距今 i 天前，用正负 15% 左右的随机扰动模拟历史数据（i=0 即今天本身）
+    const jitter = (base, spread) => {
+      const v = base + (Math.random()-0.5)*spread;
+      return v;
+    };
+    history.push({
+      dayOffset: -i,
+      mood: Math.max(0, Math.min(10, jitter(today.mood, 3))),
+      pressure: Math.max(0, Math.min(10, jitter(today.pressure, 3))),
+      sleepH: Math.max(3, Math.min(10, jitter(today.sleepH, 1.6))),
+      sleepQ: Math.max(0, Math.min(10, jitter(today.sleepQ, 2.5))),
+      hrv: Math.max(15, jitter(today.hrv, 14)),
+      exercise: Math.max(0, jitter(today.exercise, 20))
+    });
+  }
+  // 最后一天用真实的今日填写值覆盖，保证"今日"数据是用户真实输入
+  history[6] = {dayOffset:0, mood:today.mood, pressure:today.pressure, sleepH:today.sleepH,
+                sleepQ:today.sleepQ, hrv:today.hrv, exercise:today.exercise};
+  return history;
+}
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.3 节律计算层 - 压力指数计算】
+// 文档原文："系统综合用户的压力评分、睡眠质量及HRV等指标进行加权计算，构建个体化压力指数。
+//           考虑到不同用户的生理基线存在差异，系统并非简单采用统一阈值，而是结合用户连续数据
+//           建立个人基线，并通过标准化处理降低不同个体之间的差异"
+// 实现：0-100分，压力评分权重0.4，睡眠质量（反向）权重0.3，HRV（反向，越低压力越大）权重0.3
+// 再与历史7日均值（个人基线）比较，得出"相较自身正常状态的变化程度"
+// ---------------------------------------------------------------------------------------
+function calcStressIndex(record){
+  const pressureNorm = record.pressure * 10;              // 0-10 -> 0-100
+  const sleepQNorm = (10 - record.sleepQ) * 10;            // 睡眠质量越差，压力贡献越高
+  const hrvNorm = Math.max(0, Math.min(100, (70 - record.hrv) / 70 * 100 + 30)); // HRV越低，压力贡献越高（简化映射）
+  const stressRaw = pressureNorm*0.4 + sleepQNorm*0.3 + hrvNorm*0.3;
+  return Math.round(Math.max(0, Math.min(100, stressRaw)));
+}
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.3 节律计算层 - 情绪稳定指数计算】
+// 文档原文："基于用户连续7天的情绪记录、压力变化趋势及相关行为数据，对情绪波动程度进行动态分析。
+//           系统重点关注用户情绪波动幅度、波动频率及压力变化趋势，形成情绪稳定指数。"
+// 实现：计算7日情绪评分的标准差（波动幅度）+ 压力上升趋势，波动越大/压力上升越明显，稳定指数越低
+// 输出0-100，数值越高代表情绪越稳定
+// ---------------------------------------------------------------------------------------
+function calcEmotionStability(history){
+  const moods = history.map(h=>h.mood);
+  const mean = moods.reduce((a,b)=>a+b,0)/moods.length;
+  const variance = moods.reduce((a,b)=>a+Math.pow(b-mean,2),0)/moods.length;
+  const std = Math.sqrt(variance); // 情绪波动幅度
+
+  // 压力变化趋势：用最近3天均值 - 前4天均值，判断压力是否持续升高
+  const recentPressure = history.slice(4).reduce((a,h)=>a+h.pressure,0)/3;
+  const earlyPressure = history.slice(0,4).reduce((a,h)=>a+h.pressure,0)/4;
+  const pressureTrend = Math.max(0, recentPressure - earlyPressure); // 压力上升幅度
+
+  // 波动幅度越大（std越高，满分约5）、压力上升趋势越明显，稳定指数越低
+  const instability = std/5*60 + pressureTrend/5*40;
+  const stability = Math.round(Math.max(0, Math.min(100, 100 - instability)));
+  return {stability, std: std.toFixed(2), pressureTrend: pressureTrend.toFixed(2)};
+}
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.3 节律计算层 - 专注力预测模型】
+// 文档原文："目前采用简单线性回归与机器学习回归算法相结合的方式，对历史压力、睡眠、HRV、情绪稳定性
+//           等特征进行训练，预测用户未来约3天的专注力变化趋势。模型输出并非单纯给出一个静态分数，
+//           而是关注用户状态的变化方向与趋势"
+// 实现：用简化线性回归思路——基础专注力分 = f(睡眠, HRV, 情绪稳定指数, 压力)，
+//      再基于压力/睡眠的7日变化斜率，外推未来3天走势（上升/持平/下降）
+// ---------------------------------------------------------------------------------------
+function calcFocusPrediction(history, stability){
+  const today = history[6];
+  const sleepScore = Math.min(100, (today.sleepH/8)*60 + today.sleepQ*4);
+  const hrvScore = Math.min(100, today.hrv/70*100);
+  const baseFocus = sleepScore*0.35 + hrvScore*0.25 + stability*0.25 + (100-today.pressure*10)*0.15;
+
+  // 简单线性回归：用最近3天与前4天均值差，得到每日变化"斜率"，外推未来3天
+  const recentPressure = history.slice(4).reduce((a,h)=>a+h.pressure,0)/3;
+  const earlyPressure = history.slice(0,4).reduce((a,h)=>a+h.pressure,0)/4;
+  const recentSleep = history.slice(4).reduce((a,h)=>a+h.sleepQ,0)/3;
+  const earlySleep = history.slice(0,4).reduce((a,h)=>a+h.sleepQ,0)/4;
+  // 压力上升 或 睡眠质量下降 => 未来专注力呈下降趋势；反之上升
+  const slopePerDay = (recentSleep - earlySleep)*3 - (recentPressure - earlyPressure)*3;
+
+  const future = [1,2,3].map(d => Math.round(Math.max(0, Math.min(100, baseFocus + slopePerDay*d))));
+  const trendLabel = slopePerDay > 1.5 ? "上升趋势" : (slopePerDay < -1.5 ? "下降趋势" : "基本平稳");
+  return {base: Math.round(baseFocus), future, trendLabel};
+}
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.3 节律计算层 - 情绪性进食风险预测】
+// 文档原文（严格照搬判定逻辑）：
+//   IF 压力指数>阈值 AND 情绪稳定指数<阈值 AND 当前处于黄体期 THEN 爆食风险=高
+// 本Demo在此基础上，为「非黄体期」或「未同时满足三条件」的情况补充中/低风险分级，
+// 以完整覆盖所有周期阶段（文档逻辑仅针对黄体期给出明确高风险判定，其余情况按风险因子数量降级判断）
+// ---------------------------------------------------------------------------------------
+function calcEatingRisk(stressIndex, stability, phase){
+  const STRESS_THRESHOLD = 60;      // 压力指数阈值（文档所述"压力指数>阈值"）
+  const STABILITY_THRESHOLD = 50;   // 情绪稳定指数阈值（文档所述"情绪稳定指数<阈值"）
+
+  const highStress = stressIndex > STRESS_THRESHOLD;
+  const lowStability = stability < STABILITY_THRESHOLD;
+  const isLuteal = (phase === "黄体期");
+
+  // ===== 文档原始逻辑：三条件同时满足 => 高风险 =====
+  if(highStress && lowStability && isLuteal){
+    return {level:"高", reason:`压力指数(${stressIndex})超过阈值(${STRESS_THRESHOLD}) 且 情绪稳定指数(${stability})低于阈值(${STABILITY_THRESHOLD}) 且 当前处于黄体期 → 触发文档规则：暴食风险=高`};
+  }
+  // 满足两项风险因子（含黄体期）时，判为中风险；不满足或仅满足一项，判为低风险
+  let hitCount = [highStress, lowStability, isLuteal].filter(Boolean).length;
+  if(hitCount >= 2){
+    return {level:"中", reason:`当前满足 ${hitCount}/3 项风险条件（压力指数${highStress?'偏高':'正常'}、情绪稳定指数${lowStability?'偏低':'正常'}、生理周期${isLuteal?'为黄体期':'非黄体期'}），未完全触发高风险规则，判定为中等风险`};
+  }
+  return {level:"低", reason:`当前压力与情绪状态相对平稳，且/或不处于黄体期，未触发情绪性进食高风险规则`};
+}
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.4 脑代谢决策层 - Step02 周期加权机制】
+// 文档原文："系统首先识别用户当前存在的主要风险因素，并根据用户所处的不同生理周期阶段进行动态权重
+//           调整。例如，同样的压力水平，在不同周期阶段可能具有不同的意义" ——
+//           "多源数据融合+周期加权+个体基线比较+趋势分析"
+// 实现：为四个生理周期阶段设定不同的指标权重系数（黄体期/经期对压力和睡眠更敏感，卵泡期/排卵期相对稳定）
+// ---------------------------------------------------------------------------------------
+const CYCLE_WEIGHTS = {
+  "卵泡期": {stress:1.0, emotion:1.0, sleep:1.0, focus:1.0, eating:1.0},
+  "排卵期": {stress:1.0, emotion:1.0, sleep:1.0, focus:1.05, eating:1.0},
+  "黄体期": {stress:1.2, emotion:1.2, sleep:1.05, focus:1.0, eating:1.25}, // 黄体期激素回落，压力/情绪影响被放大
+  "经期":   {stress:1.05, emotion:1.05, sleep:1.2, focus:0.95, eating:1.05} // 经期身体消耗大，睡眠/恢复权重提升
+};
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.4 脑代谢决策层 - Step03 脑代谢状态判定】
+// 文档原文："系统综合各项指标，形成当前女性脑代谢状态评价，在不同周期通过加权计算，产生一个脑代谢
+//           平衡分，并根据综合结果将状态划分为不同等级，例如：良好→一般→预警→高风险"
+// 实现：0-100分。分数由 (100-压力指数)、情绪稳定指数、睡眠质量、专注力基础分、情绪性进食风险(倒扣)
+//      经过周期加权后的加权平均得到。等级划分：≥80 良好 / 60-79 一般 / 40-59 预警 / <40 高风险
+// ---------------------------------------------------------------------------------------
+function calcBrainBalanceScore(stressIndex, stability, sleepScore, focusBase, eatingRisk, phase){
+  const w = CYCLE_WEIGHTS[phase];
+  const antiStress = 100 - stressIndex; // 压力指数转换为"抗压表现"分，越高越好
+
+  // 情绪性进食风险倒扣分：高风险扣更多分
+  const eatingPenalty = eatingRisk.level === "高" ? 18 : (eatingRisk.level === "中" ? 8 : 0);
+
+  const weightedSum =
+      antiStress * w.stress * 0.28 +
+      stability  * w.emotion * 0.27 +
+      sleepScore * w.sleep   * 0.20 +
+      focusBase  * w.focus   * 0.15 +
+      (100 - eatingPenalty*w.eating) * 0.10;
+
+  const totalWeight = w.stress*0.28 + w.emotion*0.27 + w.sleep*0.20 + w.focus*0.15 + w.eating*0.10;
+  let score = Math.round(weightedSum / totalWeight);
+  score = Math.max(0, Math.min(100, score));
+
+  let level, levelClass;
+  if(score >= 80){level="良好"; levelClass="badge-good";}
+  else if(score >= 60){level="一般"; levelClass="badge-mid";}
+  else if(score >= 40){level="预警"; levelClass="badge-warn";}
+  else {level="高风险"; levelClass="badge-high";}
+
+  return {score, level, levelClass};
+}
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.4 脑代谢决策层 - Step02/风险优先级排序 + 4.2"风险优先级排序"】
+// 文档原文："面对多个同时存在的问题，系统优先识别对当前状态影响最大的因素，将有限的干预资源集中于
+//           最关键的问题。"  对应输出页面"风险点TOP3"模块
+// 实现：将各项风险因子换算为0-100的"影响程度"分值，排序取前三
+// ---------------------------------------------------------------------------------------
+function calcRiskTop3(stressIndex, stability, sleepScore, focusPred, eatingRisk){
+  const risks = [
+    {name:"压力负荷偏高", impact: stressIndex, detail:`压力指数 ${stressIndex} 分`},
+    {name:"睡眠恢复不足", impact: 100 - sleepScore, detail:`睡眠综合评分 ${sleepScore} 分`},
+    {name:"情绪波动/情绪稳定性偏低", impact: 100 - stability, detail:`情绪稳定指数 ${stability} 分`},
+    {name:"情绪性进食风险", impact: eatingRisk.level==="高"?85:(eatingRisk.level==="中"?55:20), detail:`风险等级：${eatingRisk.level}`},
+    {name:"专注力下降趋势", impact: focusPred.trendLabel==="下降趋势"?70:(focusPred.trendLabel==="基本平稳"?35:15), detail:`未来3天：${focusPred.trendLabel}`}
+  ];
+  risks.sort((a,b)=>b.impact-a.impact);
+  return risks.slice(0,3);
+}
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.5 个性化干预层】
+// 文档原文："系统围绕四个核心维度进行干预：运动、饮食、睡眠、情绪管理。不是'用户缺什么就补什么'，
+//           而是'用户现在最需要什么，就优先干预什么'。... 每个推荐配有直观'原因标签'...建立信任而非黑箱"
+// 实现：结合当前生理周期阶段 + 各项指数，生成四大维度建议，并附带【推荐理由】说明依据
+// ---------------------------------------------------------------------------------------
+function generateActionPlan(phase, stressIndex, stability, sleepScore, eatingRisk, focusPred){
+  const plans = [];
+
+  // ---- 运动建议 ----
+  let exerciseAdvice, exerciseReason;
+  if(phase === "经期"){
+    exerciseAdvice = ["低强度舒缓运动为主（散步/拉伸）","避免高强度力量训练","单次运动控制在20分钟内"];
+    exerciseReason = `当前处于<b>经期</b>，身体消耗较大，系统按周期加权机制降低该阶段运动强度建议`;
+  } else if(phase === "黄体期"){
+    exerciseAdvice = ["中等强度、轻松有氧为主","30分钟快走/慢跑","避免高强度力量训练"];
+    exerciseReason = `当前处于<b>黄体期</b>，加之压力指数(${stressIndex})${stressIndex>60?'偏高':'正常'}，建议以舒缓有氧为主，减少额外身体负荷`;
+  } else if(phase === "排卵期"){
+    exerciseAdvice = ["身体状态较佳，可安排中高强度训练","30-40分钟力量或有氧结合","注意运动后拉伸放松"];
+    exerciseReason = `<b>排卵期</b>激素水平相对稳定，身体承受能力较好，是适合提升运动强度的窗口期`;
+  } else {
+    exerciseAdvice = ["可安排中等偏高强度运动","30-40分钟快走/慢跑/力量训练","运动后10分钟拉伸放松"];
+    exerciseReason = `<b>卵泡期</b>整体状态平稳，代谢水平上升，适合逐步加大运动量`;
+  }
+  plans.push({icon:"🏃‍♀️", title:"运动建议", items:exerciseAdvice, reason:exerciseReason});
+
+  // ---- 饮食建议 ----
+  let dietAdvice, dietReason;
+  if(eatingRisk.level === "高"){
+    dietAdvice = ["加餐选择低GI食物（坚果/酸奶）","减少精制糖与高油食物摄入","三餐规律，避免长时间空腹诱发暴食"];
+    dietReason = `情绪性进食风险判定为<b>高</b>：${eatingRisk.reason}`;
+  } else if(eatingRisk.level === "中"){
+    dietAdvice = ["均衡血糖，减少精制糖摄入","早餐补充优质蛋白+复合碳水","适当增加Omega-3（深海鱼/坚果）"];
+    dietReason = `情绪性进食风险为<b>中</b>：${eatingRisk.reason}`;
+  } else {
+    dietAdvice = ["保持均衡饮食结构即可","适量补充深色蔬菜与优质蛋白","维持规律三餐时间"];
+    dietReason = `当前情绪性进食风险较<b>低</b>，维持现有饮食节奏即可`;
+  }
+  plans.push({icon:"🥗", title:"饮食建议", items:dietAdvice, reason:dietReason});
+
+  // ---- 睡眠建议 ----
+  let sleepAdvice, sleepReason;
+  if(sleepScore < 60){
+    sleepAdvice = ["23:00前尽量上床准备入睡","睡前避免摄入咖啡因/电子屏幕","可尝试舒缓音乐/深呼吸15分钟"];
+    sleepReason = `睡眠综合评分(${sleepScore})偏低，${phase==="经期"?"经期身体恢复需求更高，":""}建议优先改善入睡时间与睡眠环境`;
+  } else {
+    sleepAdvice = ["维持当前作息节律","保持卧室黑暗、安静、凉爽","避免睡前1小时剧烈用脑"];
+    sleepReason = `睡眠综合评分(${sleepScore})处于正常范围，建议维持现有作息习惯`;
+  }
+  plans.push({icon:"🌙", title:"睡眠建议", items:sleepAdvice, reason:sleepReason});
+
+  // ---- 情绪管理建议 ----
+  let emotionAdvice, emotionReason;
+  if(stability < 50){
+    emotionAdvice = ["写下3件今天值得感恩的小事","进行10分钟正念呼吸冥想","与朋友/家人倾诉或散步"];
+    emotionReason = `情绪稳定指数(${stability})偏低，压力呈${stressIndex>60?'上升':'平稳'}趋势，压力释放有助于降低进食冲动、稳定代谢节律`;
+  } else {
+    emotionAdvice = ["保持当前情绪调节方式","可安排轻松社交或兴趣活动","继续记录每日情绪，巩固稳定状态"];
+    emotionReason = `情绪稳定指数(${stability})表现良好，继续保持当前调节方式即可`;
+  }
+  plans.push({icon:"💗", title:"情绪管理建议", items:emotionAdvice, reason:emotionReason});
+
+  return plans;
+}
+
+// ---------------------------------------------------------------------------------------
+// 【计划书 3.5 今日小目标】文档原文："将复杂的健康管理拆解为少量可执行任务"
+// ---------------------------------------------------------------------------------------
+function generateGoals(phase, sleepScore, stressIndex){
+  const goals = [];
+  goals.push(phase==="经期" ? "完成20分钟舒缓散步" : "完成30分钟中等强度运动");
+  goals.push(sleepScore<60 ? "23:00前上床躺下" : "维持规律作息");
+  goals.push("今日饮水 ≥ 1.8L");
+  goals.push("记录情绪日记 1 次");
+  if(stressIndex>60) goals.push("完成一次10分钟正念呼吸");
+  return goals;
+}
+
+// ---------------------------------------------------------------------------------------
+// 一键填入高风险模拟案例（用于答辩演示"IF压力指数>阈值 AND 情绪稳定指数<阈值 AND 黄体期 THEN 高风险"）
+// ---------------------------------------------------------------------------------------
+function fillMockHighRisk(){
+  document.getElementById('in_phase').value = "黄体期";
+  document.getElementById('in_mood').value = 2;
+  document.getElementById('in_pressure').value = 9;
+  document.getElementById('in_sleep_h').value = 4.5;
+  document.getElementById('in_sleep_q').value = 3;
+  document.getElementById('in_hrv').value = 32;
+  document.getElementById('in_exercise').value = 5;
+}
+
+// ---------------------------------------------------------------------------------------
+// 主流程：读取表单 -> 依次调用以上算法函数 -> 渲染报告页面
+// 完整链路对应计划书3.4："多源数据→风险识别→周期加权→综合评估→优先级排序→决策输出→用户反馈"
+// ---------------------------------------------------------------------------------------
+function generateReport(){
+  const today = {
+    age: Number(document.getElementById('in_age').value),
+    bmi: Number(document.getElementById('in_bmi').value),
+    phase: document.getElementById('in_phase').value,
+    mood: Number(document.getElementById('in_mood').value),
+    pressure: Number(document.getElementById('in_pressure').value),
+    sleepH: Number(document.getElementById('in_sleep_h').value),
+    sleepQ: Number(document.getElementById('in_sleep_q').value),
+    hrv: Number(document.getElementById('in_hrv').value),
+    exercise: Number(document.getElementById('in_exercise').value)
+  };
+
+  // Step01 多源数据输入 + 建立个人基线历史
+  const history = generateMockHistory(today);
+
+  // 节律计算层四大指数
+  const stressIndex = calcStressIndex(today);
+  const emotionResult = calcEmotionStability(history);
+  const stability = emotionResult.stability;
+  const sleepScore = Math.round(Math.min(100, (today.sleepH/8)*60 + today.sleepQ*4));
+  const focusPred = calcFocusPrediction(history, stability);
+  const eatingRisk = calcEatingRisk(stressIndex, stability, today.phase);
+
+  // 脑代谢决策层：综合评分 + 等级
+  const brain = calcBrainBalanceScore(stressIndex, stability, sleepScore, focusPred.base, eatingRisk, today.phase);
+
+  // 风险TOP3
+  const riskTop3 = calcRiskTop3(stressIndex, stability, sleepScore, focusPred, eatingRisk);
+
+  // 个性化干预层
+  const actionPlan = generateActionPlan(today.phase, stressIndex, stability, sleepScore, eatingRisk, focusPred);
+  const goals = generateGoals(today.phase, sleepScore, stressIndex);
+
+  // ---------------- 渲染页面 ----------------
+  document.getElementById('reportArea').style.display = 'block';
+  document.getElementById('reportDate').innerText = new Date().toLocaleDateString('zh-CN', {year:'numeric',month:'2-digit',day:'2-digit'}) + " · 当前阶段：" + today.phase;
+
+  document.getElementById('scoreNum').innerText = brain.score;
+  const levelEl = document.getElementById('scoreLevel');
+  levelEl.innerText = brain.level;
+  levelEl.className = 'score-level ' + brain.levelClass;
+
+  // 模拟"比昨日/比上周同期"趋势对比（用历史数据首尾差值模拟，对应计划书海报案例"比昨日+6 比上周同期+8"）
+  const yestStress = calcStressIndex(history[5]);
+  const diffStress = stressIndex - yestStress;
+  document.getElementById('scoreTrend').innerText = `压力指数较昨日 ${diffStress>=0?'↑':'↓'}${Math.abs(diffStress)}`;
+
+  document.getElementById('statusText').innerHTML =
+    `当前整体状态<b>${brain.level}</b>，主要受「压力负荷${stressIndex>60?'升高':'正常'} + 睡眠恢复${sleepScore<60?'不足':'良好'}」影响，
+     情绪性进食风险呈<b>${eatingRisk.level}</b>水平，未来3天专注力预测为<b>${focusPred.trendLabel}</b>。
+     结合当前所处「${today.phase}」，系统已对压力/情绪/睡眠指标进行周期加权修正。`;
+
+  const riskListEl = document.getElementById('riskList');
+  riskListEl.innerHTML = '';
+  riskTop3.forEach((r,i)=>{
+    riskListEl.innerHTML += `
+      <div class="risk-item">
+        <div class="risk-rank">${i+1}</div>
+        <div style="flex:1;">
+          <div>${r.name}</div>
+          <div class="risk-bar-wrap"><div class="risk-bar" style="width:${r.impact}%"></div></div>
+        </div>
+        <div class="risk-pct">${Math.round(r.impact)}%</div>
+      </div>`;
+  });
+
+  const actionGridEl = document.getElementById('actionGrid');
+  actionGridEl.innerHTML = '';
+  actionPlan.forEach(p=>{
+    actionGridEl.innerHTML += `
+      <div class="action-card">
+        <div class="icon">${p.icon}</div>
+        <h4>${p.title}</h4>
+        <ul>${p.items.map(i=>`<li>${i}</li>`).join('')}</ul>
+        <div class="action-reason"><b>推荐理由：</b>${p.reason}</div>
+      </div>`;
+  });
+
+  const goalsEl = document.getElementById('goalsArea');
+  goalsEl.innerHTML = goals.map(g=>`<div class="goal-chip">☐ ${g}</div>`).join('');
+
+  // ---------------- 图表 ----------------
+  const labels = history.map(h => h.dayOffset===0 ? '今日' : `${h.dayOffset}天`);
+  const stressSeries = history.map(h=>calcStressIndex(h));
+  const hrvSeries = history.map(h=>Math.round(h.hrv));
+  const moodSeries = history.map(h=>Number(h.mood.toFixed(1)));
+
+  renderChart('chartStress', 'stress', labels, stressSeries, '压力指数', '#8b4a72');
+  renderChart('chartHRV', 'hrv', labels, hrvSeries, 'HRV (ms)', '#5b2a5e');
+  renderChart('chartMood', 'mood', labels, moodSeries, '情绪评分', '#c97fa0');
+
+  document.getElementById('reportArea').scrollIntoView({behavior:'smooth'});
+}
+
+function renderChart(canvasId, key, labels, data, label, color){
+  if(charts[key]) charts[key].destroy();
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  charts[key] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: label,
+        data: data,
+        borderColor: color,
+        backgroundColor: color + '33',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:false}}
+    }
+  });
+}
+</script>
+</body>
+</html>
