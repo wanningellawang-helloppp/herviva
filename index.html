@@ -317,7 +317,7 @@
 <div class="wrap">
 
   <!-- ============ 1. 数据录入模块 ============ -->
-  <div class="section-title"><span class="dot"></span><h2>① 数据录入模块（对应计划书 3.2 多源数据层）</h2></div>
+  <div class="section-title"><span class="dot"></span><h2>① 数据录入模块</h2></div>
   <div class="card">
     <div class="form-grid">
       <div class="field">
@@ -325,8 +325,20 @@
         <input type="number" id="in_age" value="24" min="15" max="55">
       </div>
       <div class="field">
-        <label>BMI</label>
-        <input type="number" id="in_bmi" value="21.3" step="0.1" min="14" max="40">
+        <label>身高（米）</label>
+        <input type="number" id="in_height" value="1.65" step="0.01" min="1.30" max="2.10" oninput="updateBMI()">
+      </div>
+      <div class="field">
+        <label>体重（千克）</label>
+        <input type="number" id="in_weight" value="58" step="0.1" min="30" max="150" oninput="updateBMI()">
+      </div>
+      <div class="field">
+        <label>BMI（自动计算）</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="number" id="in_bmi" value="21.3" readonly style="background:#f6e9e3;color:var(--ink-soft);cursor:not-allowed;">
+          <span id="bmiTag" style="flex-shrink:0;padding:4px 12px;border-radius:20px;font-size:12.5px;font-weight:700;color:#fff;background:var(--good);white-space:nowrap;">正常</span>
+        </div>
+        <div class="hint">根据身高、体重自动实时计算，保留1位小数，BMI仅供参考、无法区分肌肉和脂肪</div>
       </div>
       <div class="field">
         <label>当前生理周期阶段</label>
@@ -336,6 +348,7 @@
           <option value="黄体期" selected>黄体期</option>
           <option value="经期">经期</option>
         </select>
+        <div class="hint">28天周期，经期结束后依次为：卵泡期、排卵期、黄体期。</div>
       </div>
       <div class="field">
         <label>今日情绪评分（0-10，越高越好）</label>
@@ -356,7 +369,7 @@
       <div class="field">
         <label>HRV 心率变异性（ms）</label>
         <input type="number" id="in_hrv" value="48" min="10" max="120">
-        <div class="hint">正常参考区间约 30-80ms，仅作 Demo 模拟</div>
+        <div class="hint">可穿戴设备检测，正常参考区间约为30-80ms</div>
       </div>
       <div class="field">
         <label>今日运动时长（分钟）</label>
@@ -370,7 +383,7 @@
   <!-- ============ 2. 输出报告 ============ -->
   <div id="reportArea">
 
-    <div class="section-title"><span class="dot"></span><h2>② 今日脑代谢综合评价（对应计划书 3.4 脑代谢决策层）</h2></div>
+    <div class="section-title"><span class="dot"></span><h2>② 今日脑代谢综合评价</h2></div>
     <div class="card">
       <div class="report-header">
         <div style="font-size:15px;font-weight:700;color:var(--deep-purple);">Hi，今天也要好好照顾自己哦 🌸</div>
@@ -397,7 +410,7 @@
       </div>
     </div>
 
-    <div class="section-title"><span class="dot"></span><h2>③ 今日个性化行动建议（对应计划书 3.5 个性化干预层）</h2></div>
+    <div class="section-title"><span class="dot"></span><h2>③ 今日个性化行动建议</h2></div>
     <div class="action-grid" id="actionGrid"></div>
 
     <div class="card" style="margin-top:16px;">
@@ -424,10 +437,6 @@
   </div>
 </div>
 
-<footer>
-  Herviva 赫维薇 · HerOS 团队 · 河南农业大学生命科学学院 ｜ 本页面所有计算逻辑均为演示用简化算法，不代表真实医学/生理模型 ｜ 数据仅保存在本地浏览器内存中，刷新即清空
-</footer>
-
 <script>
 /* =========================================================================================
    Herviva 核心算法逻辑
@@ -436,6 +445,38 @@
    ========================================================================================= */
 
 let charts = {stress:null, hrv:null, mood:null};
+
+// ---------------------------------------------------------------------------------------
+// BMI 自动计算：根据用户填写的身高（米）、体重（千克）实时计算 BMI = 体重 / 身高^2
+// 计算结果保留1位小数，写入只读的 #in_bmi 输入框，后续所有仿真运算均读取该字段
+// ---------------------------------------------------------------------------------------
+function updateBMI(){
+  const h = Number(document.getElementById('in_height').value);
+  const w = Number(document.getElementById('in_weight').value);
+  const bmiInput = document.getElementById('in_bmi');
+  const bmiTag = document.getElementById('bmiTag');
+  if(h > 0 && w > 0){
+    const bmi = w / (h * h);
+    bmiInput.value = bmi.toFixed(1);
+    if(bmiTag){
+      let tagText, tagColor;
+      if(bmi < 18.5){ tagText = '偏瘦'; tagColor = 'var(--mid)'; }
+      else if(bmi < 24.0){ tagText = '正常'; tagColor = 'var(--good)'; }
+      else if(bmi < 28.0){ tagText = '超重'; tagColor = 'var(--warn)'; }
+      else { tagText = '肥胖'; tagColor = 'var(--high)'; }
+      bmiTag.innerText = tagText;
+      bmiTag.style.background = tagColor;
+    }
+  } else {
+    bmiInput.value = '';
+    if(bmiTag){
+      bmiTag.innerText = '--';
+      bmiTag.style.background = 'var(--ink-soft)';
+    }
+  }
+}
+// 页面加载时先根据默认身高体重计算一次初始 BMI
+updateBMI();
 
 // ---------------------------------------------------------------------------------------
 // 【计划书 3.2 多源数据层】生成模拟 7 日历史数据，用于建立"个人基线"
